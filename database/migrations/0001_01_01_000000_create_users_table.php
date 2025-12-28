@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -15,8 +14,12 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            // --- Tambahan ---
+            $table->string('nik', 16)->unique()->nullable(); // NIK 16 digit
+            $table->string('phone', 20)->nullable(); // No WhatsApp
+            $table->string('avatar_url')->nullable(); // Foto Profil
+            $table->string('role')->default('user'); // 'user' atau 'admin'
             $table->rememberToken();
             $table->timestamps();
         });

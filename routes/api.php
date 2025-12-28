@@ -1,8 +1,12 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Api\CampaignController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+// Endpoint Public (Bisa diakses tanpa login)
+Route::get('/campaigns', [CampaignController::class, 'index']);
+
+// Endpoint Test
+Route::get('/test', function () {
+    return response()->json(['message' => 'API Berjalan!']);
+});
