@@ -17,14 +17,13 @@ class ReportController extends Controller
             'urgency' => 'required',
             'location_address' => 'required',
             'description' => 'required',
-            'photo' => 'required|image|max:2048', // Wajib file gambar max 2MB
+            'photo' => 'required|image|max:2048',
         ]);
 
-        // 2. Upload Foto ke Server
+        // 2. Upload Foto
         if ($request->hasFile('photo')) {
-            // Simpan di folder public/reports
             $path = $request->file('photo')->store('reports', 'public');
-            // Buat URL lengkap agar bisa diakses Flutter (Ganti localhost dengan IP Laptop otomatis)
+            // Simpan Full URL agar mudah diakses Flutter
             $photoUrl = asset('storage/' . $path);
         } else {
             return response()->json(['message' => 'Foto wajib diisi'], 400);
@@ -32,15 +31,17 @@ class ReportController extends Controller
 
         // 3. Simpan ke Database
         $report = Report::create([
-            'user_id' => 1, // HARDCODE DULU: Anggap User ID 1 yang lapor
+            // PERBAIKAN 1: Jangan Hardcode! Gunakan ID user yang sedang login
+            'user_id' => $request->user()->id, 
+            
             'ticket_id' => 'RPT-' . strtoupper(Str::random(6)),
             'category' => $request->category,
             'urgency' => $request->urgency,
             'description' => $request->description,
             'location_address' => $request->location_address,
-            'latitude' => -0.02, // Dummy dulu
-            'longitude' => 109.33, // Dummy dulu
-            'photo_url' => $photoUrl,
+            'latitude' => -0.02, 
+            'longitude' => 109.33,
+            'photo_url' => $photoUrl, // Pastikan nama variabel sama
             'status' => 'pending',
         ]);
 
@@ -49,5 +50,27 @@ class ReportController extends Controller
             'message' => 'Laporan berhasil dikirim!',
             'data' => $report
         ], 201);
+    }
+
+    public function myReports(Request $request)
+    {
+        // Ambil laporan milik user yang login
+        $reports = \App\Models\Report::where('user_id', $request->user()->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // PERBAIKAN 2: Mapping Gambar
+        $reports->map(function ($report) {
+            // Di database Anda kolomnya 'photo_url' dan isinya sudah Full URL (http://...)
+            // Jadi langsung assign saja, tidak perlu url('storage/...') lagi
+            $report->image_url = $report->photo_url; 
+            return $report;
+        });
+
+        return response()->json([
+            'success' => true,
+            'message' => 'List Laporan Saya',
+            'data' => $reports
+        ]);
     }
 }

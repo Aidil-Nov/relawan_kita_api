@@ -35,7 +35,7 @@ Route::get('/campaigns', [CampaignController::class, 'index']);
 // ============================================================================
 
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // Auth Actions
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::post('/update-profile', [AuthController::class, 'updateProfile']);
@@ -52,4 +52,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/update-password', [AuthController::class, 'updatePassword']);
 
     Route::get('/certificates', [App\Http\Controllers\Api\CertificateController::class, 'index']);
+
+    Route::get('/my-reports', [App\Http\Controllers\Api\ReportController::class, 'myReports']);
 });
