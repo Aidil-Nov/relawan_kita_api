@@ -50,4 +50,6 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     Route::post('/update-password', [AuthController::class, 'updatePassword']);
+
+    Route::get('/certificates', [App\Http\Controllers\Api\CertificateController::class, 'index']);
 });
