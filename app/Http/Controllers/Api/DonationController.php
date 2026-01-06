@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Donation;
-use App\Models\Campaign; // Pastikan Model Campaign di-import
+use App\Models\Campaign;
+use App\Models\Notification; // [BARU] Import Model Notifikasi
 use Illuminate\Support\Str;
 use Midtrans\Config;
 use Midtrans\Snap;
@@ -73,21 +74,17 @@ class DonationController extends Controller
         }
     }
 
-    // --- RIWAYAT DONASI SAYA (AUTO UPDATE STATUS & SALDO CAMPAIGN) ---
+    // --- RIWAYAT DONASI SAYA (AUTO UPDATE STATUS & BUAT NOTIFIKASI) ---
     public function history(Request $request)
     {
-        // 1. Ambil semua donasi user ini
         $donations = Donation::with('campaign') 
             ->where('user_id', $request->user()->id)
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // 2. Loop cek status ke Midtrans
         foreach ($donations as $donation) {
-            // Hanya cek yang statusnya masih 'pending' di database kita
             if ($donation->status == 'pending' && $donation->snap_token) {
                 try {
-                    // Cek status real-time ke Midtrans
                     $status = Transaction::status($donation->order_id);
                     
                     $newStatus = 'pending';
@@ -106,24 +103,32 @@ class DonationController extends Controller
                         $newStatus = 'canceled';
                     }
 
-                    // Jika status berubah dari 'pending' ke yang lain
                     if ($newStatus != 'pending') {
                         
-                        // [MODIFIKASI MULAI] ----------------------------------
-                        // Jika status BERUBAH jadi SUCCESS, tambahkan uang ke Campaign
+                        // LOGIKA SUKSES
                         if ($newStatus == 'success') {
-                            // Cari campaign terkait
                             $campaign = Campaign::find($donation->campaign_id);
-                            
                             if ($campaign) {
-                                // Tambahkan collected_amount
-                                // increment() adalah cara aman menambahkan angka di Laravel
                                 $campaign->increment('collected_amount', $donation->amount);
                             }
-                        }
-                        // [MODIFIKASI SELESAI] --------------------------------
 
-                        // Update status donasi di database
+                            // [BARU] BUAT NOTIFIKASI OTOMATIS
+                            // Cek dulu agar tidak duplikat (opsional tapi bagus)
+                            $cekNotif = Notification::where('title', 'Pembayaran Berhasil')
+                                        ->where('message', 'LIKE', '%' . $donation->order_id . '%')
+                                        ->first();
+
+                            if (!$cekNotif) {
+                                Notification::create([
+                                    'user_id' => $donation->user_id,
+                                    'title'   => 'Pembayaran Berhasil',
+                                    'message' => 'Donasi #' . $donation->order_id . ' sebesar Rp ' . number_format($donation->amount) . ' telah berhasil.',
+                                    'type'    => 'success', // Tipe: success (donasi)
+                                    'is_read' => false,
+                                ]);
+                            }
+                        }
+
                         $donation->update(['status' => $newStatus]);
                         $donation->status = $newStatus; 
                     }
