@@ -8,15 +8,15 @@ return new class extends Migration {
     /**
      * Run the migrations.
      */
-    public function up(): void
+    public function up()
     {
         Schema::create('notifications', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->string('title');
-            $table->text('body');
-            $table->string('type'); // alert, info, success
-            $table->boolean('is_read')->default(false); // Sudah dibaca atau belum
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Penerima Notif
+            $table->string('title'); // Judul (Misal: Pembayaran Berhasil)
+            $table->text('message'); // Isi pesan
+            $table->string('type'); // 'donation' atau 'report'
+            $table->boolean('is_read')->default(false);
             $table->timestamps();
         });
     }

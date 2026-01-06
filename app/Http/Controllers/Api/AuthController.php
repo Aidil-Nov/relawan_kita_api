@@ -180,6 +180,25 @@ class AuthController extends Controller
             'message' => 'Password berhasil diubah',
         ], 200);
     }
-    // --- UPDATE PROFILE (DIPERBAIKI: DENGAN UPLOAD FOTO) ---
+    // --- RESET PASSWORD (KHUSUS DEVELOPMENT) ---
+    public function resetPasswordDev(Request $request)
+    {
+        // 1. Validasi
+        $request->validate([
+            'email' => 'required|email|exists:users,email', // Pastikan email ada di DB
+            'new_password' => 'required|string|min:8|confirmed',
+        ]);
 
+        // 2. Cari User
+        $user = User::where('email', $request->email)->first();
+
+        // 3. Update Password Langsung
+        $user->password = Hash::make($request->new_password);
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password berhasil direset. Silakan login.'
+        ], 200);
+    }
 }

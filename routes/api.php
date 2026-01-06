@@ -18,13 +18,18 @@ use App\Http\Controllers\Api\DonationController; // Pastikan ini ada
 // 1. PUBLIC ROUTES (Bisa diakses Guest)
 // ============================================================================
 
-Route::get('/test', function () { return response()->json(['message' => 'API OK']); });
+Route::get('/test', function () {
+    return response()->json(['message' => 'API OK']);
+});
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // [PENTING] Pindahkan ini ke Public agar Guest bisa lihat list donasi
 Route::get('/campaigns', [CampaignController::class, 'index']);
-
+Route::get('/reports/public', [ReportController::class, 'publicIndex']);
+Route::post('/reset-password-dev', [AuthController::class, 'resetPasswordDev']);
+// PUBLIC ROUTES
+Route::get('/weather', [App\Http\Controllers\Api\WeatherController::class, 'getCurrentWeather']);
 // ============================================================================
 // 2. PROTECTED ROUTES
 // ============================================================================
@@ -39,7 +44,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Features
     Route::post('/reports', [ReportController::class, 'store']);
     Route::get('/my-reports', [ReportController::class, 'myReports']);
-    
+
     Route::get('/certificates', [App\Http\Controllers\Api\CertificateController::class, 'index']);
 
     // DONASI & RIWAYAT
@@ -53,4 +58,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/reports/{id}/cancel', [App\Http\Controllers\Api\ReportController::class, 'cancel']);
     Route::post('/reports/delete', [App\Http\Controllers\Api\ReportController::class, 'destroy']);
+    Route::post('/update-password', [AuthController::class, 'updatePassword']);
+    Route::get('/notifications', [App\Http\Controllers\Api\NotificationController::class, 'index']);
+    Route::post('/reports/sos', [App\Http\Controllers\Api\ReportController::class, 'sos']);
 });
