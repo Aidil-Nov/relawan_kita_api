@@ -22,11 +22,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'nik',
+        'phone',
+        'avatar_url', // <--- PASTIIN INI ADA
         'role',
-        'avatar_url',
-        // --- PASTIKAN DUA INI ADA ---
-        'nik',    // <--- Wajib ada
-        'phone',  // <--- Wajib ada
     ];
 
     /**

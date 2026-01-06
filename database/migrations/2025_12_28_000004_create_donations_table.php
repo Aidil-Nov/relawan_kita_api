@@ -4,33 +4,25 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration {
-    /**
-     * Run the migrations.
-     */
-    public function up(): void
+return new class extends Migration
+{
+    public function up()
     {
         Schema::create('donations', function (Blueprint $table) {
             $table->id();
-            // Relasi
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
-            $table->foreignId('campaign_id')->constrained()->onDelete('cascade');
-
-            $table->string('order_id')->unique(); // ID Unik Midtrans (misal: DON-12345)
-            $table->decimal('amount', 15, 2); // Nominal donasi
+            $table->foreignId('user_id')->constrained()->onDelete('cascade'); // Donatur
+            $table->foreignId('campaign_id')->constrained()->onDelete('cascade'); // Kampanye tujuan
+            
+            $table->string('order_id')->unique(); // ID Unik untuk Midtrans (Ex: DON-12345)
+            $table->double('amount'); // Jumlah Donasi
             $table->string('status')->default('pending'); // pending, success, failed, expired
-            $table->string('payment_method')->nullable(); // bca, bri, gopay (diisi setelah bayar)
-            $table->string('snap_token')->nullable(); // Token dari Midtrans
-            $table->boolean('is_anonymous')->default(false); // Fitur "Hamba Allah"
-            $table->text('prayer_message')->nullable(); // Doa/Dukungan
+            $table->string('snap_token')->nullable(); // Token pembayaran dari Midtrans
+            
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
-    public function down(): void
+    public function down()
     {
         Schema::dropIfExists('donations');
     }

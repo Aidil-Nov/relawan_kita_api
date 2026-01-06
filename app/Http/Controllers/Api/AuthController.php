@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule; // Import ini untuk validasi update yang lebih rapi
 
 class AuthController extends Controller
@@ -32,12 +33,14 @@ class AuthController extends Controller
 
         // 4. Jika Benar, Buat Token
         $token = $user->createToken('auth_token')->plainTextToken;
-
+        // Mapping agar field 'avatar_url' dikirim sebagai 'photo_url' ke Flutter
+        $userData = $user->toArray();
+        $userData['photo_url'] = $user->avatar_url;
         return response()->json([
             'success' => true,
             'message' => 'Login Berhasil',
             'data' => [
-                'user' => $user,
+                'user' => $userData,
                 'token' => $token
             ]
         ], 200);
@@ -67,12 +70,14 @@ class AuthController extends Controller
 
         // 3. Langsung buat token (Auto Login setelah daftar)
         $token = $user->createToken('auth_token')->plainTextToken;
-
+        // Mapping agar field 'avatar_url' dikirim sebagai 'photo_url' ke Flutter
+        $userData = $user->toArray();
+        $userData['photo_url'] = $user->avatar_url;
         return response()->json([
             'success' => true,
             'message' => 'Registrasi Berhasil',
             'data' => [
-                'user' => $user,
+                'user' => $userData,
                 'token' => $token
             ]
         ], 201);
@@ -81,33 +86,58 @@ class AuthController extends Controller
     // --- UPDATE PROFILE ---
     public function updateProfile(Request $request)
     {
-        $user = $request->user(); // Ambil user yang sedang login dari Token
+        $user = $request->user();
 
         // 1. Validasi
         $request->validate([
             'name' => 'required|string|max:255',
             'phone' => 'nullable|string|max:20',
-            // PENTING: Validasi unique NIK harus mengecualikan ID user yang sedang login
-            // Artinya: "Cek apakah NIK ini unik, KECUALI untuk user ini sendiri"
             'nik' => [
                 'nullable',
                 'string',
                 'size:16',
                 'unique:users,nik,' . $user->id
             ],
+            // Validasi Foto: Harus Gambar, Max 2MB, Format tertentu
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg|max:2048',
         ]);
 
-        // 2. Update Data
-        $user->update([
-            'name' => $request->name,
-            'phone' => $request->phone,
-            'nik' => $request->nik,
-        ]);
+        // 2. Logic Upload Foto
+        if ($request->hasFile('photo')) {
+            // Hapus foto lama jika ada (agar hemat storage)
+            if ($user->avatar_url) {
+                // Ambil path relatif dari URL (misal: "http://.../storage/avatars/abc.jpg" -> "avatars/abc.jpg")
+                $oldPath = str_replace(asset('storage/'), '', $user->avatar_url);
+                if (\Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath)) {
+                    \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+                }
+            }
+
+            // Simpan foto baru
+            $path = $request->file('photo')->store('avatars', 'public');
+            $fullUrl = asset('storage/' . $path);
+
+            // Update kolom avatar_url di user object
+            $user->avatar_url = $fullUrl;
+        }
+
+        // 3. Update Data Teks
+        $user->name = $request->name;
+        $user->phone = $request->phone;
+        $user->nik = $request->nik;
+        $user->save(); // Simpan perubahan ke DB
+
+        // 4. Return User Data (PENTING: Tambahkan 'photo_url' di response JSON agar Flutter mengerti)
+        // Kita mapping 'avatar_url' (DB) menjadi 'photo_url' (Flutter)
+        $userData = $user->toArray();
+        $userData['photo_url'] = $user->avatar_url;
 
         return response()->json([
             'success' => true,
             'message' => 'Profil berhasil diperbarui',
-            'data' => $user
+            'data' => [
+                'user' => $userData
+            ]
         ], 200);
     }
 
@@ -150,4 +180,6 @@ class AuthController extends Controller
             'message' => 'Password berhasil diubah',
         ], 200);
     }
+    // --- UPDATE PROFILE (DIPERBAIKI: DENGAN UPLOAD FOTO) ---
+
 }
